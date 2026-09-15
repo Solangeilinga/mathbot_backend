@@ -9,6 +9,7 @@
     "dev": "node --watch server.js",
     "db:init": "node db/init.js",
     "db:seed": "node scripts/insertTestSubject.js",
+    "db:seed-real": "node scripts/insertRealSubjects.js",
     "db:index-rag": "node scripts/indexAnnales.js",
     "db:index-real-annales": "node scripts/indexRealAnnales.js",
     "rag:eval": "node scripts/evalRag.js",

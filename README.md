@@ -145,34 +145,45 @@ fiable). Deux types de vérification :
    température quasi nulle, vérifie si la réponse marquée comme correcte
    l'est réellement. *Le juge est lui-même approximatif* (voir plus bas).
 
-### Résultats (dernier run, `openai/gpt-oss-120b` via Groq)
+### Résultats (`openai/gpt-oss-120b` via Groq)
 
-| Règle | Taux |
-|---|---|
-| Conformité globale (toutes règles confondues) | 59/81 (73 %) |
-| Ligne "✓ Bonne réponse" présente (génération d'exercice en chat) | 3/11 (27 %) |
-| Sections structurées détectées (analyseur d'exercice) | 0/6 (0 %) |
-| Prénom utilisé naturellement (message de bienvenue) | 4/6 (67 %) |
-| Exactitude mathématique jugée (n=3) | 0 VRAI / 2 FAUX / 1 INCERTAIN |
+| Métrique | Avant renfort des prompts | Après |
+|---|---|---|
+| Conformité de format (toutes règles confondues) | 73 % | **95 %** |
+| Exactitude mathématique jugée (LLM-as-judge, n=23) | *(invalide, voir plus bas)* | **17 VRAI / 2 FAUX / 4 INCERTAIN** |
 
-**Deux bugs confirmés à la main** (pas seulement le format — la substance) :
-- Un exercice de probabilités où le modèle calcule correctement 3/28 dans sa
-  propre correction, mais marque une autre option comme "bonne réponse".
-- Un exercice d'algèbre dont l'équation générée (2x+5 + x-3 = 27) donne
-  x = 25/3, qui ne correspond à AUCUNE des 4 options proposées.
+**Deux bugs de PROMPT corrigés dans `lib/prompts.js`** (`buildSystemPrompt`,
+`buildExercisePrompt`) : ajout d'exemples concrets (few-shot) et de rappels
+explicites, après avoir constaté que le modèle omettait souvent la ligne
+"✓ Bonne réponse" en mode chat et utilisait du **gras markdown** autour des
+titres de section en mode analyseur — ce qui cassait le parsing frontend.
+Conformité de format : 73 % → 95 % sur le même jeu de scénarios.
 
-**Limite du juge notée par honnêteté** : sur un 3ᵉ cas jugé "INCERTAIN", la
-vérification manuelle a montré que la réponse du tuteur était en fait
-correcte — le juge LLM peut donc aussi se tromper (dans le sens
-prudence excessive ici). Les verdicts "FAUX" ci-dessus ont été vérifiés à la
-main ; ce n'est pas automatique dans le script.
+**Bug de PARSING découvert en cours de route, dans l'outil d'éval lui-même**
+(et sa contrepartie en production) : `parseQCM` faisait
+`correctLine.match(/[ABCD]/i)[0]` pour extraire la lettre marquée comme
+correcte. Problème : le mot "**B**onne" (dans "✓ Bonne réponse : C") contient
+un "B", qui matche AVANT la vraie lettre — la fonction retournait donc "B"
+quasiment tout le temps, peu importe la lettre réellement écrite par le
+modèle. Repéré parce que 100 % des verdicts d'un run affichaient
+"réponse marquée B", statistiquement impossible. **Le même bug existait dans
+le code de production, `ChatArea.jsx::parseExercise`** — en conditions
+réelles, l'option B était donc systématiquement créditée comme "bonne
+réponse" côté élève, peu importe la vraie réponse. Corrigé dans les deux
+fichiers (ancrage sur `✓`/`bonne réponse :` + frontière de mot après la
+lettre, pour ne plus capter le "B" de "Bonne").
 
-*Cause probable des deux bugs de format* : `llama-3.3-70b-versatile` a été
-retiré du catalogue Groq en cours de route (remplacé par `openai/gpt-oss-120b`
-dans `lib/ai.js`) — ce modèle suit moins strictement le format imposé par
-`lib/prompts.js` que celui utilisé à la conception initiale du projet. Piste
-de correction non implémentée ici : few-shot examples dans le prompt, ou
-validation + regénération automatique côté backend si le format est invalide.
+Une fois ce bug corrigé, les verdicts du juge redeviennent exploitables :
+sur 23 exercices générés, 2 erreurs de correction confirmées à la main (ex.
+"5x + 2 = 27" correctement résolu en x = 5 dans le raisonnement du modèle,
+mais l'option C = 6 marquée "bonne réponse" au lieu de B = 5) — soit un taux
+de ~9 % d'erreurs de correction sur cet échantillon, résiduel après le renfort
+des prompts (qui a corrigé le FORMAT mais pas entièrement l'EXACTITUDE).
+
+**Limite du juge notée par honnêteté** : sur plusieurs cas jugés
+"INCERTAIN" (surtout en trigonométrie), la vérification manuelle a montré que
+la réponse du tuteur était en fait correcte — le juge LLM est donc lui-même
+imparfait (par excès de prudence ici, pas par excès de confiance).
 
 ## ⚠️ Limitations connues
 
