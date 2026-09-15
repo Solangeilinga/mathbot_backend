@@ -19,7 +19,7 @@ async function analyze(req, res) {
   const ragChunks = await retrieveRelevantExercises({
     chapitre,
     queryText: exerciseText || chapitre,
-    topK: 2,
+    topK: 3,
   });
   const systemPrompt = buildExercisePrompt(prenom, chapitre, profil) + formatRagContext(ragChunks);
   let reply = "";

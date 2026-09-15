@@ -14,9 +14,9 @@
 require("dotenv").config();
 const { retrieveRelevantExercises } = require("../lib/rag");
 
-// Nombre max de chunks dans un même chapitre du corpus actuel (Algèbre = 9) —
+// Nombre max de chunks dans un même chapitre du corpus actuel (Algèbre = 22) —
 // sert de topK pour obtenir un classement complet et calculer un vrai rang.
-const FULL_RANK_TOPK = 10;
+const FULL_RANK_TOPK = 25;
 
 // Niveau "facile" : chaque requête cible un exercice topiquement distinct des
 // autres du même chapitre (vocabulaire assez discriminant à lui seul).
@@ -83,7 +83,7 @@ function printTier(name, outcomes) {
 }
 
 async function main() {
-  console.log(`🔎 Évaluation du RAG (corpus = 23 chunks réels, sessions BEPC 2025 & 2013)`);
+  console.log(`🔎 Évaluation du RAG (corpus = 66 chunks réels, sessions BEPC 2025/2023/2022/2021/2013)`);
 
   const easyOutcomes = [];
   for (const item of EVAL_SET_EASY) easyOutcomes.push(await evalOne(item));

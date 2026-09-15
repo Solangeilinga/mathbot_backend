@@ -87,7 +87,7 @@ async function sendMessage(req, res) {
         [userId, chapitre]
       ),
       queryOne("SELECT profil_pedagogique FROM users WHERE id = ?", [userId]),
-      retrieveRelevantExercises({ chapitre, queryText: message, topK: 2 }),
+      retrieveRelevantExercises({ chapitre, queryText: message, topK: 3 }),
     ]);
   } catch (err) {
     console.error("[chat/message] préparation:", err.message);

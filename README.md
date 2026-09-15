@@ -97,30 +97,39 @@ npm run rag:eval                # mesure la qualité du retrieval (voir plus bas
 
 ### Corpus
 
-`data/annales-corpus.js` contient des exercices **réellement tirés** d'épreuves
-officielles du BEPC Burkina Faso (référence Ministère MESPFT/SG/DGECC),
-sessions 2025 et 2013 (source : examens-concours.net). Différence clé avec
-l'ancien pipeline (`scripts/indexAnnales.js` + `exam_subjects`, conservé pour
-la simulation d'examen) : chaque **exercice individuel** est étiqueté avec son
+`data/annales-corpus.js` contient 66 exercices **réellement tirés** d'épreuves
+officielles du BEPC Burkina Faso (réf. Ministère MESPFT/SG/DGECC ou
+MENAPLN/SG/DGEC selon l'année), sessions **2025, 2023, 2022, 2021, 2013** (1er
+tour) — sources : examens-concours.net et epreuvesetcorriges.com (détail par
+session dans `scripts/insertRealSubjects.js`). Différence clé avec l'ancien
+pipeline (`scripts/indexAnnales.js` + `exam_subjects`, conservé pour la
+simulation d'examen) : chaque **exercice individuel** est étiqueté avec son
 vrai chapitre (Algèbre/Géométrie/Fonctions/Trigonométrie/Statistiques), au lieu
 de taguer tout un sujet entier "Mixte" — c'est ce qui rend le filtre par
 chapitre de `lib/rag.js` réellement discriminant plutôt que no-op.
 
-*Limite assumée* : aucune des deux sessions récupérées ne contient de question
-de Probabilités — ce chapitre n'a donc pas encore d'annale réelle indexée
-(mieux vaut l'absence de couverture qu'un faux exercice étiqueté "vraie annale").
+Répartition : Algèbre 22 · Géométrie 19 · Fonctions 18 · Trigonométrie 4 · Statistiques 3.
+
+*Limite assumée* : aucune des 5 sessions récupérées ne contient de question de
+Probabilités — ce chapitre n'a donc pas encore d'annale réelle indexée (mieux
+vaut l'absence de couverture qu'un faux exercice étiqueté "vraie annale"). Pas
+de session 2020 trouvée non plus (voir `scripts/insertRealSubjects.js` pour le
+détail de la recherche, y compris un faux-positif écarté après vérification).
 
 ### Évaluation du retrieval (`scripts/evalRag.js`)
 
 Jeu de 19 requêtes formulées "façon élève" (jamais le texte exact de
 l'exercice), étiquetées à la main avec le chunk attendu. Deux niveaux :
 - **Facile** (sujets topiquement distincts dans un même chapitre) : Recall@1 = 100 %, MRR = 1.000
-- **Difficile** (plusieurs exercices proches du même chapitre, ex. 3 factorisations de polynômes en Algèbre) : Recall@1 = 75 %, Recall@2 = 100 %, MRR = 0.875
+- **Difficile** (plusieurs exercices proches du même chapitre, ex. 6 factorisations/systèmes d'équations en Algèbre) : Recall@1 = 63 %, Recall@2 = 75 %, Recall@3 = 88 %, MRR = 0.754
 
-Le niveau difficile confirme empiriquement que `topK=2` (déjà utilisé par
-`chatController`/`exerciseController`) est le bon compromis : le bon exercice
-n'est pas toujours en 1ère position quand plusieurs se ressemblent, mais il est
-systématiquement dans les 2 premiers sur ce jeu de test.
+Le niveau difficile a montré empiriquement qu'avec le corpus élargi (22
+candidats en Algèbre contre 9 initialement), `topK=2` (utilisé jusqu'ici par
+`chatController`/`exerciseController`) ne suffisait plus : le bon exercice
+n'est plus toujours dans le top-2 quand plusieurs se ressemblent. Passé à
+`topK=3` dans les deux controllers suite à cette mesure — Recall@3 = 88 % sur
+le jeu difficile. Un signal concret que la qualité du retrieval se dégrade
+avec la densité du corpus, pas juste un chiffre qui reste à 100 % indéfiniment.
 
 *Fonctionnalité dégradable* : si l'extension `pgvector` n'est pas installée
 sur votre serveur PostgreSQL, `db/init.js` affiche un avertissement et
