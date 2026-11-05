@@ -56,7 +56,7 @@ async function correctSubject(req, res) {
     const correction = await completeChat({
       systemPrompt: CORRECTION_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMsg }],
-      maxTokens: 1800,
+      maxTokens: 2600,
       temperature: 0.7,
     });
 

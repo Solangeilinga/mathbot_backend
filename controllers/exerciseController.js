@@ -41,7 +41,7 @@ async function analyze(req, res) {
       reply = await completeChat({
         systemPrompt,
         messages: [{ role: "user", content: userMessage }],
-        maxTokens: 1800,
+        maxTokens: 2600,
         temperature: 0.7,
       });
     }

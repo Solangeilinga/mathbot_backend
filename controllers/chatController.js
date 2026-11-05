@@ -43,7 +43,7 @@ async function welcome(req, res) {
     for await (const piece of streamChatText({
       systemPrompt,
       messages: [{ role: "user", content: instruction }],
-      maxTokens: 350,
+      maxTokens: 700,
       temperature: 0.92,
     })) {
       fullText += piece;
@@ -118,7 +118,7 @@ async function sendMessage(req, res) {
         ...historyRows.map((m) => ({ role: m.role, content: m.content })),
         { role: "user", content: message },
       ],
-      maxTokens: 1000,
+      maxTokens: 1600,
       temperature: 0.85,
     })) {
       fullText += piece;

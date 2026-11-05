@@ -146,7 +146,7 @@ JUSTIFICATION: une phrase courte`;
 async function genWelcome({ chapitre, prenom, profil, hasHistory, maxWords }) {
   const systemPrompt = buildSystemPrompt(chapitre, profil, prenom);
   const instruction = buildWelcomeInstruction(prenom, chapitre, profil, hasHistory);
-  const text = await completeChat({ systemPrompt, messages: [{ role: "user", content: instruction }], maxTokens: 350, temperature: 0.92 });
+  const text = await completeChat({ systemPrompt, messages: [{ role: "user", content: instruction }], maxTokens: 700, temperature: 0.92 });
   const checks = [checkNoForbiddenWords(text), checkWordLimit(text, maxWords), checkMentionsPrenom(text, prenom)];
   return { text, checks, exercises: [] };
 }
@@ -154,7 +154,7 @@ async function genWelcome({ chapitre, prenom, profil, hasHistory, maxWords }) {
 async function genChat({ chapitre, prenom, message, maxWords, expectQCM }) {
   const ragChunks = await retrieveRelevantExercises({ chapitre, queryText: message, topK: 3 });
   const systemPrompt = buildSystemPrompt(chapitre, null, prenom) + formatRagContext(ragChunks);
-  const text = await completeChat({ systemPrompt, messages: [{ role: "user", content: message }], maxTokens: 1000, temperature: 0.85 });
+  const text = await completeChat({ systemPrompt, messages: [{ role: "user", content: message }], maxTokens: 1600, temperature: 0.85 });
   const checks = [checkNoForbiddenWords(text), checkWordLimit(text, maxWords)];
   const exercises = [];
   if (expectQCM) {
@@ -170,7 +170,7 @@ async function genExerciseAnalysis({ chapitre, prenom, exerciseText, maxWords })
   const ragChunks = await retrieveRelevantExercises({ chapitre, queryText: exerciseText, topK: 3 });
   const systemPrompt = buildExercisePrompt(prenom, chapitre, null) + formatRagContext(ragChunks);
   const userMessage = `Voici l'exercice à analyser :\n\n${exerciseText}\n\nAnalyse-le et suis le format demandé.`;
-  const text = await completeChat({ systemPrompt, messages: [{ role: "user", content: userMessage }], maxTokens: 1800, temperature: 0.7 });
+  const text = await completeChat({ systemPrompt, messages: [{ role: "user", content: userMessage }], maxTokens: 2600, temperature: 0.7 });
   const checks = [checkWordLimit(text, maxWords), checkSections(text)];
   const blocks = extractExerciseBlocks(text);
   checks.push({ name: "2 exercices d'entraînement générés", pass: blocks.length === 2, detail: `trouvé: ${blocks.length}` });
