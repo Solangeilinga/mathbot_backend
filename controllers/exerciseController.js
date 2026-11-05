@@ -1,7 +1,7 @@
 // controllers/exerciseController.js
 const { queryOne, run } = require("../lib/db");
 const { buildExercisePrompt } = require("../lib/prompts");
-const { completeChat, analyzeImage, getGeminiClient } = require("../lib/ai");
+const { completeChat, analyzeImage, getGeminiClient, isRateLimitError } = require("../lib/ai");
 const { retrieveRelevantExercises, formatRagContext } = require("../lib/rag");
 
 async function analyze(req, res) {
@@ -41,7 +41,7 @@ async function analyze(req, res) {
       reply = await completeChat({
         systemPrompt,
         messages: [{ role: "user", content: userMessage }],
-        maxTokens: 1200,
+        maxTokens: 1800,
         temperature: 0.7,
       });
     }
@@ -65,7 +65,7 @@ async function analyze(req, res) {
     console.error("[exercise/analyze]", err.message);
     let status = 502;
     let msg = "Erreur IA — réessaie dans quelques secondes.";
-    if (err.message.includes("quota") || err.message.includes("rate")) {
+    if (isRateLimitError(err)) {
       status = 429;
       msg = "Limite API atteinte, réessaie dans quelques secondes.";
     } else if (err.message.includes("GEMINI_API_KEY")) {

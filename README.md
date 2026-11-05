@@ -194,7 +194,42 @@ des prompts (qui a corrigé le FORMAT mais pas entièrement l'EXACTITUDE).
 la réponse du tuteur était en fait correcte — le juge LLM est donc lui-même
 imparfait (par excès de prudence ici, pas par excès de confiance).
 
+### Mise à jour : juge corrigé, puis correctif de prompt
+
+En relançant l'évaluation, deux défauts de l'outil lui-même sont apparus :
+
+- **Le juge était bridé à 150 tokens.** Or `gpt-oss-120b` est un modèle de
+  raisonnement dont les tokens de réflexion comptent dans `max_tokens` : sa
+  réponse visible était souvent vide, ce qui retombait sur "INCERTAIN" par
+  défaut. Les anciens "INCERTAIN" cachaient donc une partie des erreurs. Avec un
+  budget de 700 tokens, la base réelle (n = 24 exercices) est de
+  **17 VRAI / 7 FAUX / 0 INCERTAIN**, soit ~29 % de lettres "bonne réponse"
+  erronées, concentrées sur les exercices d'entraînement de l'analyseur : le
+  modèle résout correctement ("x = 6") mais marque une autre lettre.
+- **L'éval n'utilisait plus les mêmes paramètres que la production** (budgets de
+  tokens, `topK` du RAG) : alignée sur `chatController`/`exerciseController`.
+
+**Correctif** (`lib/prompts.js`) : la ligne de correction devient
+`✓ Bonne réponse : B (x = 5)`. Recopier la valeur à côté de la lettre force le
+modèle à recouper les deux, et le prompt impose de résoudre puis de retrouver la
+lettre au lieu de la deviner. Les parseurs frontend ne lisent que la lettre, et
+la ligne reste masquée à l'élève. Résultat sur le même jeu de scénarios :
+**22 VRAI / 1 FAUX / 1 INCERTAIN** (justesse 71 % → 92 %). Conformité de format
+stable (94 à 97 % selon les runs ; les échecs restants sont du bruit sur le
+message d'accueil, comme "prénom absent", 3 essais par scénario seulement).
+
+Un essai avec `reasoning_effort: "low"` (pour éviter les réponses tronquées) a
+dégradé la justesse : abandonné, le problème de troncature est traité par des
+budgets de tokens plus généreux.
+
 ## ⚠️ Limitations connues
+
+- **Les identifiants de modèles IA se périment.** `gemini-1.5-flash` (vision),
+  `gemini-2.0-flash-lite` (repli texte) et `gemini-2.0-flash-exp` (TTS) ont été
+  retirés de l'API : l'analyse de photo et le repli vocal étaient en panne sans
+  que rien ne le signale. Les modèles lite sont désormais utilisés (avec relance
+  sur 503 "forte demande", fréquents), mais il faut re-tester `exercise/analyze`
+  et `/api/tts` après tout retrait annoncé par Google.
 
 - **Rate limiting** (`express-rate-limit`) utilise un magasin en mémoire par
   défaut : sur un déploiement multi-instances, chaque instance a son propre

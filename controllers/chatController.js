@@ -2,7 +2,7 @@
 const { query, queryOne, run } = require("../lib/db");
 const { resolvePrenom } = require("../lib/user");
 const { buildSystemPrompt, buildWelcomeInstruction } = require("../lib/prompts");
-const { streamChatText } = require("../lib/ai");
+const { streamChatText, isRateLimitError } = require("../lib/ai");
 const { generateMemory } = require("../lib/memory");
 const { retrieveRelevantExercises, formatRagContext } = require("../lib/rag");
 
@@ -43,7 +43,7 @@ async function welcome(req, res) {
     for await (const piece of streamChatText({
       systemPrompt,
       messages: [{ role: "user", content: instruction }],
-      maxTokens: 200,
+      maxTokens: 350,
       temperature: 0.92,
     })) {
       fullText += piece;
@@ -118,7 +118,7 @@ async function sendMessage(req, res) {
         ...historyRows.map((m) => ({ role: m.role, content: m.content })),
         { role: "user", content: message },
       ],
-      maxTokens: 600,
+      maxTokens: 1000,
       temperature: 0.85,
     })) {
       fullText += piece;
@@ -127,7 +127,7 @@ async function sendMessage(req, res) {
   } catch (err) {
     console.error("[chat/message] stream:", err.message);
     const friendly =
-      err.message.includes("quota") || err.message.includes("rate")
+      isRateLimitError(err)
         ? "\n\n⏱️ Limite API atteinte, réessaie dans quelques secondes."
         : "\n\n⚠️ MathBot a rencontré une erreur pendant la réponse.";
     res.write(friendly);

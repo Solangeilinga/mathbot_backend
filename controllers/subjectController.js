@@ -56,12 +56,16 @@ async function correctSubject(req, res) {
     const correction = await completeChat({
       systemPrompt: CORRECTION_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMsg }],
-      maxTokens: 1000,
+      maxTokens: 1800,
       temperature: 0.7,
     });
 
     const noteMatch = correction.match(/(\d+(?:[.,]\d+)?)\s*\/\s*20/);
-    const note = noteMatch ? parseFloat(noteMatch[1].replace(",", ".")) : 10;
+    if (!noteMatch) {
+      console.error("[subject/correct] aucune note /20 trouvée dans la correction");
+      return res.status(502).json({ error: "Correction incomplète, réessaie." });
+    }
+    const note = Math.min(20, parseFloat(noteMatch[1].replace(",", ".")));
 
     return res.json({ note, correction, percentage: Math.round((note / 20) * 100) });
   } catch (err) {
